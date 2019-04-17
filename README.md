@@ -1,6 +1,6 @@
 # Chipper No. 8
 ## What is it
-**Chipper No. 8** is my first attempt of emulation.  
+**Chipper No. 8** is my first attempt at emulation.  
 Many people suggest to choose CHIP-8 as your first target system, so I did exactly that.  
 It's a basic CHIP-8 emulator without any support for Super CHIP.
 
