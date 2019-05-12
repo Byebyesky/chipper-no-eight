@@ -17,6 +17,7 @@ make
 After that run the executable: ``./chipper8 <romfile>``
 
 ## Buttom mapping
+Use KP_PLUS and KP_MINUS to increase or decrease the speed of the timer.
 The button mapping is currently a bit weird:
 ```
 ---------       ---------
@@ -30,5 +31,5 @@ The button mapping is currently a bit weird:
 
 ## TODO:
 + Fix flickering and disappearing graphics
-+ Emulate timer properly
 + Possibly enable custom button mapptings
++ Sprite wrapping

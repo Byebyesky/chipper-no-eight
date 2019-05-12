@@ -54,6 +54,8 @@ class Chip8 {
     bool resetFlag;
     SDL_Event event;
     Keys pressedKey = Keys::KEY_NONE;
+    std::chrono::steady_clock::time_point clk;
+    long speed = 50000000;
 
     uint16_t fetchOpcode();
     void interpretOpcode(uint16_t opcode);
@@ -63,7 +65,7 @@ class Chip8 {
     void reset();
     void initFont();
     uint8_t handleInput(bool &quit, bool &resetFlag);
-    void decremtenTimers();
+    void decremtentTimers();
     void updateFramebuffer(uint8_t x, uint8_t y, uint8_t height, uint8_t *spritePtr);
     
     Renderer sdlRend;

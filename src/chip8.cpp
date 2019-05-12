@@ -25,19 +25,23 @@ void Chip8::reset() {
     sp = 0;
     I = 0;
     instructionCount = 0;
+    clk = chrono::steady_clock::now();
     initFont();
     sdlRend.clearDisplay();
     resetFlag = false;
     quit = false;
+
 }
 
 void Chip8::run(char *romName) {
     loadRom(romName);
     while(!quit) {
         interpretOpcode(fetchOpcode());
-        if((instructionCount % 60) == 0) decremtenTimers();
+        std::chrono::steady_clock::time_point end = chrono::steady_clock::now();
+        chrono::steady_clock::duration d = end - clk;
+        if(d.count() >= speed) decremtentTimers();
         handleInput(quit, resetFlag);
-        sdlRend.wait();
+        SDL_Delay(1);
         if(resetFlag) {reset(); loadRom(romName);}
         instructionCount++;
     }
@@ -45,7 +49,7 @@ void Chip8::run(char *romName) {
 }
 
 //Fixing timers will fix speed inconsitencies
-void Chip8::decremtenTimers() {
+void Chip8::decremtentTimers() {
     if(delayTimer > 0) {
         delayTimer--;
     }
@@ -53,6 +57,7 @@ void Chip8::decremtenTimers() {
         soundTimer--;
         if(soundTimer == 0) printf("Beep!\n");
     }
+    clk = chrono::steady_clock::now();
 }
 
 uint8_t Chip8::handleInput(bool &quit, bool &resetFlag) {
@@ -91,6 +96,15 @@ uint8_t Chip8::handleInput(bool &quit, bool &resetFlag) {
                     break;
                 case SDLK_TAB:
                     resetFlag = true;
+                    break;
+                case SDLK_KP_PLUS:
+                    speed += 10000000;
+                    printf("Speed is now: %ld\n", speed);
+                    break;
+                case SDLK_KP_MINUS:
+                    speed -= 10000000;
+                    printf("Speed is now: %ld\n", speed);
+                    break;
                 default:
                     break;
             }
@@ -285,7 +299,7 @@ void Chip8::interpretOpcode(uint16_t opcode) {
                         handleInput(quit, resetFlag);
                         if(pressedKey != Keys::KEY_NONE) V[x] = pressedKey;
                         if(quit || resetFlag) break;
-                        SDL_Delay(70);
+                        SDL_Delay(5);
                     }
                     break;
                 case 0x15:
@@ -333,8 +347,7 @@ void Chip8::interpretOpcode(uint16_t opcode) {
 
 void Chip8::updateFramebuffer(uint8_t x, uint8_t y, uint8_t n, uint8_t *spritePtr) {
     int offset = x+(y*SCREENWIDTH);
-    int width = 8;
-    
+    constexpr int width = 8;
     V[0xf] = 0;
 
     for(int i = 0; i < n; i++) {
@@ -342,7 +355,6 @@ void Chip8::updateFramebuffer(uint8_t x, uint8_t y, uint8_t n, uint8_t *spritePt
         for(int j =0; j < width; j++) {
             if(pixels & (1 << 7)) frameBuffer[offset+j+i*SCREENWIDTH] ^= 1;
             if(!frameBuffer[offset+j+i*SCREENWIDTH]) V[0xf] = 1;
-            else V[0xf] = 0;
             pixels = pixels << 1;
         }
         spritePtr = spritePtr+1;
