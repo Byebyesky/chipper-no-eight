@@ -15,9 +15,9 @@ void Chip8::initFont() {
 
 void Chip8::reset() {
     srand(time(NULL));
-    memset(memory,0, sizeof(memory));
-    memset(stack,0, sizeof(stack));
-    memset(V,0, sizeof(V));
+    memset(memory, 0, sizeof(memory));
+    memset(stack, 0, sizeof(stack));
+    memset(V, 0, sizeof(V));
     memset(frameBuffer, 0, sizeof(frameBuffer));
     delayTimer = 0;
     soundTimer = 0;
@@ -42,7 +42,7 @@ void Chip8::run(char *romName) {
         if(d.count() >= speed) decremtentTimers();
         handleInput(quit, resetFlag);
         SDL_Delay(1);
-        if(resetFlag) {reset(); loadRom(romName);}
+        if(resetFlag) {reset(); loadRom(romName);SDL_Delay(200);}
         instructionCount++;
     }
     sdlRend.deInit();
@@ -112,6 +112,7 @@ uint8_t Chip8::handleInput(bool &quit, bool &resetFlag) {
         default:
             break;
     }
+    SDL_FlushEvent(SDL_KEYDOWN);
     return pressedKey;
 }
 
@@ -160,7 +161,12 @@ void Chip8::interpretOpcode(uint16_t opcode) {
                 sprintf(debugString, "Clear()\n");
             } else if (opcode == 0x00EE) {
                 sp--;
-                pc = stack[sp];
+                if(sp >= 0) {
+                    pc = stack[sp];
+                } else {
+                    fprintf(stderr, "Out of bounds stack read: %d!\n", sp);
+                    exit(3);
+                }
                 sprintf(debugString, "RET to: %04x\n", pc);
             } else {
                 fprintf(stderr, "Unknown instruction: 0x%04x at 0x%04x\n", opcode, pc);
@@ -171,7 +177,12 @@ void Chip8::interpretOpcode(uint16_t opcode) {
             sprintf(debugString, "pc is now: %04x\n", pc);
             break;
         case 0x2:
-            stack[sp] = pc;
+            if(sp < 26) {
+                stack[sp] = pc;
+            } else {
+                fprintf(stderr, "Out of bounds stack write: %d!\n", sp);
+                exit(2);
+            }
             sprintf(debugString, "Goto sub %03x | PC on stack: %04x\n", x << 8 | y << 4 | n, stack[sp]);
             sp++;
             pc = x << 8 | y << 4 | n;
@@ -273,7 +284,13 @@ void Chip8::interpretOpcode(uint16_t opcode) {
 
         case 0xd:
             sprintf(debugString, "draw(%d, %d, %d) from 0x%04x (0x%04x)\n", V[x], V[y], n, I, I > 0x200 ? I-ROMSTARTADDR : 0 );
-            updateFramebuffer(V[x], V[y], n, &memory[I]);
+            if (I + n < MEMORYSIZE) {
+                updateFramebuffer(V[x], V[y], n, &memory[I]);
+            } else {
+                fprintf(stderr, "Out of bounds memory write: %d!", I);
+                exit(4);
+            }
+            
             sdlRend.drawPixel(V[x], V[y], n, frameBuffer);
             break;
 
@@ -317,18 +334,33 @@ void Chip8::interpretOpcode(uint16_t opcode) {
                     I = V[x]*5;
                     break;
                 case 0x33:
-                    memory[I] = V[x] / 100;
-                    memory[I+1] = (V[x] % 100) / 10;
-                    memory[I+2] = V[x] % 10;
+                    if(I+2 < MEMORYSIZE) {
+                        memory[I] = V[x] / 100;
+                        memory[I+1] = (V[x] % 100) / 10;
+                        memory[I+2] = V[x] % 10;
+                    } else {
+                        fprintf(stderr, "Out of bounds memory write: %d\n", I);
+                        exit(4);
+                    }
                     break;
                 case 0x55:
                     for(int i = 0; i <= x; i++) {
-                        memory[I + i] = V[i];
+                        if(I+i < MEMORYSIZE) {
+                            memory[I + i] = V[i];
+                        } else {
+                            fprintf(stderr, "Out of bounds memory write: %d\n", I);
+                            exit(4);
+                        }
                     }
                     break;
                 case 0x65:
                     for(int i = 0; i <= x; i++) {
-                        V[i] = memory[I + i];
+                        if(I+i < MEMORYSIZE) {
+                            V[i] = memory[I + i];
+                        } else {
+                            fprintf(stderr, "Out of bounds memory read: %d\n", I);
+                            exit(5);
+                        }
                     }
                     break;
                 default:
@@ -347,6 +379,10 @@ void Chip8::interpretOpcode(uint16_t opcode) {
 
 void Chip8::updateFramebuffer(uint8_t x, uint8_t y, uint8_t n, uint8_t *spritePtr) {
     int offset = x+(y*SCREENWIDTH);
+    if(offset > SCREENSIZE) {
+        fprintf(stderr, "Out of bounds frame write: %d\n", offset);
+        exit(6);
+    }
     constexpr int width = 8;
     V[0xf] = 0;
 

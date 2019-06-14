@@ -12,6 +12,7 @@ static constexpr int ROMSTARTADDR = 0x200;
 static constexpr int SCREENWIDTH = 64;
 static constexpr int SCREENHEIGHT = 32;
 static constexpr int SCREENSIZE = SCREENWIDTH*SCREENHEIGHT;
+static constexpr int MEMORYSIZE = 4096;
 
 enum Keys   {
         KEY_0, KEY_1, KEY_2,
@@ -45,7 +46,7 @@ class Chip8 {
     private:
 
     int romSize;
-    uint8_t memory[4096];
+    uint8_t memory[MEMORYSIZE];
     uint16_t V[16], delayTimer, soundTimer, pc, sp, stack[24];
     uint32_t I;
     uint8_t frameBuffer[SCREENSIZE];
